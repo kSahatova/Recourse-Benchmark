@@ -30,7 +30,7 @@ def add_noise(x, noise_factor=1e-6):
 
 def create_autoencoder(in_shape) -> Model:
     """
-    Builds autoencoder
+    Builds an autoencoder
     :param in_shape: input shape to construct AE
     :return: tensorflow.keras.Model of autoencoder
     """

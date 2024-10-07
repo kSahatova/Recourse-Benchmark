@@ -27,6 +27,7 @@ def load_online_dataset(name: str, root: str = './data',
         train_ds = dataset_class(root, train=True, transform=ds_transforms, download=download)
         test_ds = dataset_class(root, train=False, transform=ds_transforms, download=download)
         if split_val: 
+            # TODO: RETURNS THE SUBSET INSTEAD OF DATASET  
             train_ds, val_ds = random_split(train_ds, [0.8, 0.2])
             return [train_ds, val_ds, test_ds]
         return [train_ds, test_ds]
