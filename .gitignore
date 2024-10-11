@@ -6,3 +6,4 @@ data
 **/models_tf_weights/
 **latent_mnist_dataset_w_contributions.pickle
 **latent_mnist_dataset.pickle
+test

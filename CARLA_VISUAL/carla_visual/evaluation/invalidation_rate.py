@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-import tensorflow_probaability as tfp
+import tensorflow_probability as tfp
 import tensorflow as tf 
 
 
