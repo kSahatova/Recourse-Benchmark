@@ -12,10 +12,10 @@ from PIL import Image
 
 def plot_image(generated_batch):
     if isinstance(generated_batch, torch.Tensor):
-        array = generated_batch.detach().cpu().numpy()
+        generated_batch = generated_batch.detach().cpu().numpy()
 
     # Squeeze out any singular dimensions
-    array = np.squeeze(array)
+    array = np.squeeze(generated_batch)
     
     # Normalize the array to [0, 255] range
     if array.max() <= 1.0:
@@ -58,4 +58,18 @@ def plot_misclassifications(misclassified: List[Tuple[torch.Tensor, int, int]],
         axes[i].axis('off')
 
     plt.tight_layout()
+    plt.show()
+
+
+def plot_generated_images(x, n_plots=5, n_plots_per_row=5, residuals=False):
+    """
+    Plot several images in a grid.
+    """
+    x = x.reshape((x.shape[0], 28, 28))
+    lower_bound = -1 if residuals else 0
+    upper_bound = 1
+    for i in range(n_plots):
+        ax = plt.subplot(5, n_plots_per_row, 1 + i)
+        ax.axis('off')
+        ax.imshow(x[i], vmin=lower_bound, vmax=upper_bound, cmap="gray")
     plt.show()

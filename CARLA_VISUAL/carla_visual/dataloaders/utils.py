@@ -35,7 +35,6 @@ def pytorch_dataset_to_tf_dataset(torch_ds, input_shape, num_classes):
 
 if __name__ == '__main__':
 
-
     ds_name = 'MNIST'
     data_root = 'D:\PycharmProjects\XAIRobustness\data\images'
 
