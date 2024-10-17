@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd 
+import copy
 
 from typing import List, Tuple, Optional
 
@@ -37,8 +38,7 @@ def get_misclassificaiton(test_loader, classifier, k_misclf_num):
 
 def get_misclassifications(model: nn.Module,
                            data_loader: DataLoader,
-                           device: str, 
-                           num_samples: int = 10) -> List[Tuple[torch.Tensor, int, int]]:
+                           device: str) -> List[Tuple[torch.Tensor, int, int]]:
     """
     Get misclassified samples from a PyTorch model.
 
@@ -65,14 +65,11 @@ def get_misclassifications(model: nn.Module,
             # Find misclassified samples
             mask = (predicted != labels)
             misclassified.extend(list(zip(inputs[mask], labels[mask], predicted[mask])))
-
-            if len(misclassified) >= num_samples:
-                break
-
-    return misclassified[:num_samples]
+	
+    return misclassified 
 
 
-def optimize_z0(G, C, I, nz, num_iterations=10000, learning_rate=0.1):
+def optimize_z0(G, C, I, nz, num_iterations=10000, learning_rate=0.1, verbose=0):
     # Initialize z0 randomly
     z0 = torch.randn(1, nz, 1, 1, requires_grad=True)
     #z = z.view(z.size(0), nz, 1, 1)
@@ -98,7 +95,7 @@ def optimize_z0(G, C, I, nz, num_iterations=10000, learning_rate=0.1):
         # Update z0
         optimizer.step()
         
-        if i % 100 == 0:
+        if verbose and i % 100 == 0:
             print(f"Iteration {i}, Loss: {loss.item()}")
     
     return z0
@@ -223,41 +220,43 @@ def filter_df_of_exceptional_noise(df, target_class, cnn, alpha=0.05):
 	alpha is the probability threshold for what is "excetional" or "weird" in the image.
 	"""
 
-	df = df[df['Probability of Event'] < alpha]
-	df['flag'] = np.zeros(df.shape[0])
+	df_copy = copy.deepcopy(df)
+	df_new = df_copy[df_copy['Probability of Event'] < alpha]
+
+	df_new['flag'] = 0
 	digit_weights = cnn.classifier[0].weight[target_class]
 
-	for idx, row in df.iterrows():
+	for idx, row in df_new.iterrows():
 		feature_idx = int(row['Feature Map'])  
-		cont = row['Contribution'] 
-		cont_high = row['Cont High']
-		cont_low = row['Cont Low'] 
-		bern_fail = row['Bern Fail']
-		expected_value = row['Expected Value']
 
-		if bern_fail:  # if it's unusual to not activate, but it's negative
+		if row['Bern Fail']:  # if it's unusual to not activate, but it's negative
 			if digit_weights[feature_idx] < 0: 
-				df.at[feature_idx, 'flag'] = 1
-		if cont_high:  # if it's high, but positive
+				df_new.at[feature_idx, 'flag'] = 1
+		if row['Cont High']:  # if it's high, but positive
 			if digit_weights[feature_idx] > 0: 
-				df.at[feature_idx, 'flag'] = 1
-		if cont_low:  # if it's low, but negative
+				df_new.at[feature_idx, 'flag'] = 1
+		if row['Cont Low'] :  # if it's low, but negative
 			if digit_weights[feature_idx] < 0: 
-				df.at[feature_idx, 'flag'] = 1
+				df_new.at[feature_idx, 'flag'] = 1
 
-	df = df[df.flag == 0]
-	del df['flag']
-	
-	return df
+	exceptional_noise_idx = df_new[df_new.flag == 0].index.tolist()
+	print('Exceptions(?): ', df_new[df_new.flag == 1].index.tolist())
+	df_copy = df_copy.drop(index=exceptional_noise_idx, axis=0)
+	print('The length of the latent datset before and after filtering:', df.shape, '|', df_copy.shape)
+	print('Number of noisy exceptional features deleted:', len(exceptional_noise_idx))
+
+	return df_copy
 
 
-def optim_PIECE(G, cnn, x_prime, z_e, criterion, optimizer):
+def optim_PIECE(G, cnn, x_prime, z_e, n_iterations=500):
 	"""
 	Step 3 of the PIECE algorithm
 	returns: z prime
 	"""
+	criterion = nn.MSELoss()
+	optimizer = optim.Adam([z_e], lr=0.001)
 
-	for i in range(300):
+	for i in range(n_iterations):
 
 		optimizer.zero_grad()
 		logits, x_e = cnn(G(z_e))

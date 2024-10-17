@@ -8,3 +8,4 @@ data
 **latent_mnist_dataset.pickle
 test
 countergan
+**latent_activations
